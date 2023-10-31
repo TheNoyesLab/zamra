@@ -301,3 +301,13 @@ Subject: Started script to generate the final output file
 
 Began the script `gen_output_file.py` in the testing directory to combine the group-to-genome file and the modified count matrix into `final_output.tsv`, 
 combining the results of the two files.   
+
+
+## Entry
+Date: 2023-10-30
+User: singe259
+Subject: Nextflow automation 
+
+## Description
+
+Integrated the parallel working directory to add a working Nextflow automation script (main.nf). 

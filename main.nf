@@ -145,6 +145,40 @@ process AMR_LONG_TO_WIDE {
 	"""
 }
 
+process FIX_COUNT_MATRIX {
+        publishDir 'data'
+
+        input: 
+        path original_count_matrix 
+        path ground_truth 
+        path update_script
+
+        output:
+        path "final_count_matrix.csv"
+
+        script:
+        """
+        python3 $update_script $original_count_matrix $ground_truth/group_to_genome.tsv final_count_matrix.csv
+        """
+}
+
+process GENERATE_OUTPUTS {
+        publishDir 'results'
+
+        input:
+        path final_count_matrix 
+        path generate_script 
+
+        output:
+        path 'final_outputs/'
+
+        script:
+        """
+        mkdir -p final_outputs
+        python3 $generate_script $final_count_matrix final_outputs/
+        """       
+}
+
 workflow {
 	meg_ch = Channel.fromPath('data/databases/megares_database_v3.00.fasta')
 	blast_db_ch = MAKE_BLAST_DB(meg_ch).first() 	
@@ -152,7 +186,7 @@ workflow {
 	mock_genomes_ch = Channel.fromPath('data/raw/D6331.refseq/genomes/*.fasta')
 	aligned_ch = BLAST_ALIGN(blast_db_ch, mock_genomes_ch).collect()
 	
-	filter_ch = FILTER_BLAST(aligned_ch)	
+	filter_ch = FILTER_BLAST(aligned_ch)
 
 	ground_truth_ch = FIND_GROUND_TRUTH(filter_ch)
 
@@ -165,5 +199,14 @@ workflow {
         ra_path = Channel.value('/home/noyes046/shared/tools/pipeline.source/AMR++/3.0.6/src/AMRplusplus/bin/resistome')       
         annot_path = Channel.value('/home/noyes046/shared/tools/pipeline.source/AMR++/3.0.6/src/AMRplusplus/data/amr/megares_annotations_v3.00.csv') 
         ra_ch = RESISTOME_ANALYZER(minimap_ch, ra_path, ground_truth_db, annot_path)
-        ra_fixed_ch = RA_FIX(ra_ch).view()
+        ra_fixed_ch = RA_FIX(ra_ch).collect()
+
+        amr_l2w_path = Channel.fromPath('bin/amr_long_to_wide.py') 
+        count_matrix_ch = AMR_LONG_TO_WIDE(ra_fixed_ch, amr_l2w_path)
+
+        cm_script_path = Channel.fromPath('src/output_scripts/update_group_count_matrix.py')
+        count_matrix_fixed_ch = FIX_COUNT_MATRIX(count_matrix_ch, ground_truth_ch, cm_script_path)      
+
+        generate_script_path = Channel.fromPath('src/output_scripts/gen_output_files.py') 
+        final_outputs_ch = GENERATE_OUTPUTS(count_matrix_fixed_ch, generate_script_path) 
 }
