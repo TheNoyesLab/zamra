@@ -1,3 +1,5 @@
+params.coverage = 95
+
 process MAKE_BLAST_DB {
 	input:
 	path meg_db 
@@ -40,7 +42,7 @@ process FILTER_BLAST {
 
 	script:
 	"""
-	awk -F "\t" 'function basename(file){ sub(".*/", "", file); return file } { if(\$3 >= 95 && \$2 !~ /M*RequiresSNPConfirmation/) print basename(FILENAME), "\t", \$1, "\t", \$2, "\t", \$3 >> "mock_genome_ARGs_filter.tsv"; else print \$0 >> "mock_genome_ARGs_did_not_filter.tsv"}' $aligned_genomes
+	awk -F "\t" 'function basename(file){ sub(".*/", "", file); return file } { if(\$3 >= ${params.coverage} && \$2 !~ /M*RequiresSNPConfirmation/) print basename(FILENAME), "\t", \$1, "\t", \$2, "\t", \$3 >> "mock_genome_ARGs_filter.tsv"; else print \$0 >> "mock_genome_ARGs_did_not_filter.tsv"}' $aligned_genomes
 	"""
 }
 
